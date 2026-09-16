@@ -1,6 +1,6 @@
 //https://sweet.ua.pt/tos/software/prime_sieve.html
 // fast_sieve.c
-//
+//clear && gcc -O3 -march=native -o sieve SegementedErathostenes.c -o m.o && ./m.o
 // Copyright (C) August 2010, Tomás Oliveira e Silva
 //
 // e-mail: tos@ua.pt
@@ -1089,8 +1089,74 @@ static void kilo_prime_gaps(u32 m,u32 n)
 //
 // main program
 //
+//
+// simple main function - no arguments needed
+// generates primes up to 10^9 and counts them
+//
 
-int main(int argc,char **argv)
+int main(void)
+{
+  u64 limit = 1000000000ull; // 10^9
+  u64 x, l1;
+  u32 i, j, c, l0;
+  r64 dt;
+
+  init_sieve(limit + 2ull * _sieve_span_);
+
+  dt = cpu_time();
+  x = 1ull;
+  c = 1u;    // pi(2) = 1
+  l0 = 0u;
+  l1 = 1ull;
+
+  // count primes up to 10^9 in powers of 10
+  fprintf(stderr, "Generating primes up to %llu ...\n", limit);
+
+  for(sieve_base = 0ull; sieve_base <= limit; sieve_base = expected_sieve_base)
+  {
+    update_sieve();
+    for(i = 0u; i < _sieve_words_;)
+    {
+      j = (u32)((l1 - x) / (u64)(16u * _pointer_size_));
+      if(j > 0u)
+      {
+        if(j > _sieve_words_ - i)
+          j = _sieve_words_ - i;
+        c += count_zero_bits((u08 *)&sieve[i], j * _pointer_size_);
+        i += j;
+        x += (u64)(j * (16u * _pointer_size_));
+      }
+      else
+      {
+        for(j = 0u; j < 8u * _pointer_size_; j++)
+        {
+          if((sieve[i] & mark_mask[j]) == (uXX)0u)
+            c++;
+          x += 2ull;
+        }
+        i++;
+      }
+      // report at powers of 10
+      if(x >= l1)
+      {
+        fprintf(stderr, "pi(10^%u) = %u\n", l0 + 1u, c);
+        l0++;
+        l1 *= 10ull;
+        if(l1 > limit)
+          break;
+      }
+    }
+    if(l1 > limit)
+      break;
+  }
+
+  dt = cpu_time() - dt;
+  fprintf(stderr, "Done in %.3f seconds\n", dt);
+
+  free_all_memory();
+  return 0;
+}
+int mains(int argc,char **argv)
 {
   u32 m,n;
 
